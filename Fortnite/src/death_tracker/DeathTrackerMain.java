@@ -7,19 +7,23 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 import death_tracker.InputFrame.distance;
 import death_tracker.InputFrame.location;
@@ -59,6 +63,8 @@ class MainFrame extends JFrame {
 
 	Death prevDeath;
 
+	boolean saved = false;
+
 	MainFrame(String title, ArrayList<Death> list, String[] argString) {
 		super(title);
 		setLayout(null);
@@ -88,7 +94,7 @@ class MainFrame extends JFrame {
 
 		lGameCount = new JLabel("Games Stored: " + gameCount);
 		lGameCount.setLocation(10, 10);
-		lGameCount.setSize(100, 30);
+		lGameCount.setSize(150, 30);
 		add(lGameCount);
 
 		lDist = new JLabel(
@@ -159,7 +165,7 @@ class MainFrame extends JFrame {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				InputFrame frame = new InputFrame("Store Game", list, MainFrame.this);
 				frame.setSize(300, 300);
-				frame.setLocation((int) frm.getLocation().getX(), (int) frm.getLocation().getY()+170);
+				frame.setLocation((int) frm.getLocation().getX(), (int) frm.getLocation().getY() + 170);
 				frame.setVisible(true);
 			}
 		});
@@ -188,6 +194,8 @@ class MainFrame extends JFrame {
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
+
+				saved = true;
 			}
 		});
 
@@ -262,21 +270,155 @@ class MainFrame extends JFrame {
 		bReset.setSize(110, 30);
 		add(bReset);
 
+		JButton bUpload = new JButton();
+		bUpload.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				JFileChooser c = new JFileChooser();
+
+				FileNameExtensionFilter txtFiler = new FileNameExtensionFilter("Text Documents (*.txt)", "txt");
+				c.addChoosableFileFilter(txtFiler);
+				c.setFileFilter(txtFiler);
+
+				int rVal = c.showSaveDialog(frm);
+				if (rVal == JFileChooser.APPROVE_OPTION) {
+					String[] temp = c.getSelectedFile().getName().toString().split("\\.");
+
+					String fileName = c.getSelectedFile().getName();
+					if (temp.length > 1) {
+						fileName = "";
+						for (int i = 0; i < temp.length - 1; i++) {
+							fileName += temp[i];
+						}
+					}
+
+					File uploadFile = new File(c.getCurrentDirectory().toString() + "\\" + fileName + ".txt");
+
+					System.out.println(uploadFile.toString());
+
+					try {
+						if (!uploadFile.exists()) {
+							uploadFile.createNewFile();
+						}
+						bSave.doClick();
+						FileChannel src = new FileInputStream("fortnite_death_stats.txt").getChannel();
+						FileChannel dest = new FileOutputStream(uploadFile).getChannel();
+						dest.transferFrom(src, 0, src.size());
+						src.close();
+						dest.close();
+					} catch (Exception e) {
+					}
+				}
+				if (rVal == JFileChooser.CANCEL_OPTION) {
+					System.out.println("Cancel");
+				}
+			}
+		});
+		try {
+			Image img = ImageIO.read(getClass().getResource("upload.png"));
+			Image newImage = img.getScaledInstance(25, 25, Image.SCALE_DEFAULT);
+			bUpload.setIcon(new ImageIcon(newImage));
+		} catch (Exception e) {
+
+		}
+		bUpload.setLocation(165, 130);
+		bUpload.setSize(50, 30);
+		bUpload.setHorizontalTextPosition(0);
+		add(bUpload);
+
+		JButton bDownload = new JButton();
+		bDownload.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				JFileChooser c = new JFileChooser();
+
+				FileNameExtensionFilter txtFiler = new FileNameExtensionFilter("Text Documents (*.txt)", "txt");
+				c.addChoosableFileFilter(txtFiler);
+				c.setFileFilter(txtFiler);
+
+				int rVal = c.showOpenDialog(frm);
+				if (rVal == JFileChooser.APPROVE_OPTION) {
+					String[] temp = c.getSelectedFile().getName().toString().split("\\.");
+
+					String fileName = c.getSelectedFile().getName();
+					if (temp.length > 1) {
+						fileName = "";
+						for (int i = 0; i < temp.length - 1; i++) {
+							fileName += temp[i];
+						}
+					}
+
+					File uploadFile = new File(c.getCurrentDirectory().toString() + "\\" + fileName + ".txt");
+
+					if (uploadFile.exists()) {
+						String[] argString = null;
+
+						try {
+							InputStream is = new FileInputStream(uploadFile);
+							BufferedReader buf = new BufferedReader(new InputStreamReader(is));
+
+							String line = buf.readLine();
+
+							argString = line.split(",");
+
+							is.close();
+							buf.close();
+
+							gameCount = Integer.parseInt(argString[0]);
+
+							closeC = Integer.parseInt(argString[1]);
+							mediumC = Integer.parseInt(argString[2]);
+							farC = Integer.parseInt(argString[3]);
+
+							shotgunC = Integer.parseInt(argString[4]);
+							rifleC = Integer.parseInt(argString[5]);
+							sniperC = Integer.parseInt(argString[6]);
+							otherC = Integer.parseInt(argString[7]);
+
+							belowC = Integer.parseInt(argString[8]);
+							sameC = Integer.parseInt(argString[9]);
+							aboveC = Integer.parseInt(argString[10]);
+
+							meC = Integer.parseInt(argString[11]);
+							themC = Integer.parseInt(argString[12]);
+							neitherC = Integer.parseInt(argString[13]);
+
+							updateFrame(null);
+							bSave.doClick();
+						} catch (Exception e) {
+						}
+					}
+				}
+				if (rVal == JFileChooser.CANCEL_OPTION) {
+					System.out.println("Cancel");
+				}
+			}
+		});
+		try {
+			Image img = ImageIO.read(getClass().getResource("download.png"));
+			Image newImage = img.getScaledInstance(25, 25, Image.SCALE_DEFAULT);
+			bDownload.setIcon(new ImageIcon(newImage));
+		} catch (Exception e) {
+
+		}
+		bDownload.setLocation(225, 130);
+		bDownload.setSize(50, 30);
+		bDownload.setHorizontalTextPosition(0);
+		add(bDownload);
+
 		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		addWindowListener(new java.awt.event.WindowAdapter() {
 			@Override
 			public void windowClosing(java.awt.event.WindowEvent windowEvent) {
-				if (JOptionPane.showConfirmDialog(frm, "Are you sure you want to exit without saving?", "Exit Without Saving",
-						JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+				if (saved || JOptionPane.showConfirmDialog(frm, "Are you sure you want to exit without saving?",
+						"Exit Without Saving", JOptionPane.YES_NO_OPTION,
+						JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
 					System.exit(0);
 
 				}
 			}
 		});
-		
-		
+
 		JLabel lImage = new JLabel();
-		int imageSize = 400;
+		int imageSize = 350;
 		try {
 			Image img = ImageIO.read(getClass().getResource("fortnite.png"));
 			Image newImage = img.getScaledInstance(imageSize, imageSize, Image.SCALE_DEFAULT);
@@ -284,11 +426,11 @@ class MainFrame extends JFrame {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		lImage.setLocation(0, 100);
+		lImage.setLocation(30, 150);
 		lImage.setSize(imageSize, imageSize);
 		add(lImage);
-		
-		getContentPane().setBackground(new Color(224,255,255));
+
+		getContentPane().setBackground(new Color(224, 255, 255));
 
 		setResizable(false);
 	}
@@ -578,8 +720,8 @@ class InputFrame extends JFrame {
 		bStore.setLocation(25, 210);
 		bStore.setSize(230, 40);
 		add(bStore);
-		
-		getContentPane().setBackground(new Color(224,255,255));
+
+		getContentPane().setBackground(new Color(224, 255, 255));
 	}
 }
 
@@ -600,7 +742,7 @@ public class DeathTrackerMain {
 			is.close();
 			buf.close();
 		} catch (FileNotFoundException e) {
-		} catch (IOException e) {
+		} catch (Exception e) {
 		}
 
 		MainFrame frm = new MainFrame("Fortnite Death Tracker", list, argString);
